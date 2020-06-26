@@ -78,7 +78,7 @@ p_x_given_y = p_y_given_x * np.tile(np.expand_dims(np.tile(p_x, Ny // Nx) / p_y,
 # Amplify and Forward
 
 # SNR for second channel in sensor in dB
-SNR_db_2 = 3
+SNR_db_2 = 10
 
 # SNR in linear scale
 SNR_lin_2 = 10 ** (SNR_db_2 / 10)
@@ -124,6 +124,27 @@ norm_sum_1 = np.sum(p_z_given_y, 0)
 
 # p(z|y)
 p_z_given_y = p_z_given_y / np.tile(norm_sum_1, (Nz, 1))
+
+# p(z)
+p_z = np.sum(p_z_given_y * p_y, 1)
+
+# p(z|y) expanded
+p_z_given_y_expanded = np.tile(np.expand_dims(p_z_given_y, axis=2), (1, 1, Nx))
+
+g = np.sum(np.tile(np.expand_dims(p_x_y, axis=0), (Nz, 1, 1)) * p_z_given_y_expanded, 1)
+
+# p(z|y)
+p_x_given_z = 1/np.tile(np.expand_dims(p_z + 1e-31, axis=1), (1, Nx)) * g
+
+# p(x,y)
+p_x_z = p_x_given_z * np.tile(np.expand_dims(p_z, axis=1), (1, Nx))
+
+p_x_times_p_z = np.tile(np.expand_dims(p_x, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z, axis=1), (1, Nx))
+
+w1 = np.log(p_x_z + 1e-31) - np.log(p_x_times_p_z + 1e-31)
+
+# I(X;Z)
+I_x_z = np.sum(p_x_z * w1)
 
 
 
