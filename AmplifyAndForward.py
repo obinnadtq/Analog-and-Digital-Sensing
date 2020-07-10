@@ -118,7 +118,7 @@ for index in range(len(SNR_db_channel)):
                       (np.amax(x_sensor) + 5 * np.sqrt(sigma2_N_sensor)),
                       dz).reshape(Nz, 1)
 
-    # initialized p(z|y)
+        # initialized p(z|y)
         p_z_x_sensor = np.ones((Nz, Ny))
 
         # initialize the temporary matrix to store conditional pdf
@@ -126,7 +126,8 @@ for index in range(len(SNR_db_channel)):
 
         # obtain the conditional pdf p(y|x) for a Gaussian channel
         for idx in range(0, Ny):
-            tmp1 = (1 / np.sqrt(2 * np.pi * sigma2_N_sensor)) * np.exp(-(z - x_sensor[idx]) ** 2 / (2 * sigma2_N_sensor))
+            tmp1 = (1 / np.sqrt(2 * np.pi * sigma2_N_sensor)) * np.exp(
+                -(z - x_sensor[idx]) ** 2 / (2 * sigma2_N_sensor))
             temp1 = np.append(temp1, tmp1, axis=1)
 
         # remove the zero from the first column of the matrix
