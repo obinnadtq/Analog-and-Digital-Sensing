@@ -1,46 +1,44 @@
 # Import the necessary modules
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import multivariate_normal
 
 # SNR in dB
-SNR_db_channel = [6, 12, 20]
+SNR_db_channel = [60]
 
 for index in range(len(SNR_db_channel)):
     # SNR in linear scale
     SNR_linear_channel = 10 ** (SNR_db_channel[index] / 10)
 
     # cardinality of AWGN channel input signal
-    Nx = 4
+    Nx = 64
 
     # cardinality of AWGN channel output signal
-    Ny = 256
+    Ny = 1024
 
     # cardinality of sensor output signal. The value is set to be the same as the cardinality of Y
-    Nz = 256
+    Nz = 1024
 
-    # input alphabet 4-ASK
-    alphabet = np.array([-3, -1, 1, 3])
+    # input alphabet 64-ASK
+    alphabet = np.arange(-63, 65, 2)
 
-    # p(x)
+
+    # p(x) uniform distribution
     p_x = 1 / Nx * np.ones(Nx)
 
     # variance of input signal
-    sigma2_X = 1
+    var_X = np.dot((alphabet**2), p_x)
 
     # variance of channel noise
-    sigma2_N = sigma2_X / SNR_linear_channel
+    var_N = var_X / SNR_linear_channel
 
     # standard deviation of each part of the complex noise
-    sigma_N_2 = np.sqrt(sigma2_N / 2)
-
-    # noise
-    n = (np.random.randn(np.size(alphabet)) + 1j * np.random.randn(np.size(alphabet))) * sigma_N_2
 
     # sampling interval
-    dy = 2 * (np.amax(alphabet) + 5 * np.sqrt(sigma2_N)) / Ny
+    dy = 2 * (np.amax(alphabet) + 5 * np.sqrt(var_N)) / Ny
 
     # discretized y
-    y = np.arange(-(np.amax(alphabet) + 5 * np.sqrt(sigma2_N)), (np.amax(alphabet) + 5 * np.sqrt(sigma2_N)),
+    y = np.arange(-(np.amax(alphabet) + 5 * np.sqrt(var_N)), (np.amax(alphabet) + 5 * np.sqrt(var_N)),
                   dy).reshape(
         Ny, 1)
 
@@ -52,7 +50,7 @@ for index in range(len(SNR_db_channel)):
 
     # obtain the conditional pdf p(y|x) for a Gaussian channel
     for idx in range(0, Nx):
-        tmp = (1 / np.sqrt(2 * np.pi * sigma2_N)) * np.exp(-(y - alphabet[idx]) ** 2 / (2 * sigma2_N))
+        tmp = (1 / np.sqrt(2 * np.pi * var_N)) * np.exp(-(y[np.arange(0, Ny)] - alphabet[idx]) ** 2 / (2 * var_N))
         temp = np.append(temp, tmp, axis=1)
 
     # remove the zero from the first column of the matrix
@@ -83,23 +81,26 @@ for index in range(len(SNR_db_channel)):
     # I(X;Y)
     I_x_y = np.sum(p_x_y * w1)
 
+    C = 0.5 * np.log2(1 + SNR_linear_channel)
+
     # Amplify and Forward
 
     # SNR for second channel in sensor in dB
-    SNR_db_sensor = np.arange(0, 20, 1)
+    SNR_db_sensor = np.arange(0, 40, 1)
     IXZ = []
+    cap = []
 
     # SNR in linear scale
     for i in range(len(SNR_db_sensor)):
         SNR_lin_sensor = 10 ** (SNR_db_sensor[i] / 10)
 
         # variance of input signal into the sensor
-        sigma2_X_sensor = 1
+        sigma2_X_sensor = np.var(y)
 
-        scale = np.sqrt(sigma2_X_sensor / (sigma2_X + sigma2_N))
+        scaling_factor = np.sqrt(sigma2_X_sensor / (var_X + var_N))
 
         # input into sensor
-        x_sensor = scale * y
+        x_sensor = scaling_factor * y
 
         # variance of noise in sensor
         sigma2_N_sensor = sigma2_X_sensor / SNR_lin_sensor
@@ -163,13 +164,16 @@ for index in range(len(SNR_db_channel)):
         # I(X;Z)
         I_x_z = np.sum(p_x_z * w1)
 
-        IXZ.append(I_x_z)
+        C = 0.5 * np.log2(1 + (SNR_linear_channel * SNR_lin_sensor) / (SNR_linear_channel + SNR_lin_sensor + 1))
 
-    plt.plot(SNR_db_sensor, IXZ, linewidth=2, label=str(SNR_db_channel[index]) + ' dB')
-    plt.title('Relevant Information versus SNR for Amplify and Forward Sensing for 4-ASK')
+        IXZ.append(I_x_z)
+        cap.append(C)
+    plt.plot(SNR_db_sensor, IXZ, linewidth=2, label=str(SNR_db_channel[index]) + ' dB - 64-ASK')
+    plt.plot(SNR_db_sensor, cap, '-o', linewidth=2, label=str(SNR_db_channel[index]) + ' dB - Gaussian')
+    plt.title('Relevant Information versus SNR for Amplify and Forward Sensing')
     plt.grid()
     plt.legend()
-    plt.xlim(0, 20)
+    plt.xlim(0, 40)
     plt.xlabel('SNR of sensor channel in dB')
     plt.ylabel('I(X;Z)')
 plt.show()
