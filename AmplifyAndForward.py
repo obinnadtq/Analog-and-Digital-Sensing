@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 
 # SNR in dB
-SNR_db_channel = [60]
+SNR_db_channel = [6, 12, 20]
 
 for index in range(len(SNR_db_channel)):
     # SNR in linear scale
