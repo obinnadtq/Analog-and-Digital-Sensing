@@ -43,10 +43,6 @@ convergence_param = 10 ** -4
 I_x_y = np.sum(
     p_x_y * (np.log2(p_x_y) - np.tile(np.expand_dims(np.log2(np.tile(p_x, Ny // Nx) * p_y), axis=1), (1, Nx))))
 H_y = -np.sum(p_y * np.log2(p_y))
-Ixz = []
-Iyz = []
-LG = []
-counter = 0
 pz_y = np.zeros((Nz, Ny))
 for k in range(0, Nz):
     temp = np.arange((k * np.floor(Ny / Nz)), min(((k + 1) * np.floor(Ny / Nz)), Ny), dtype=int)
@@ -59,5 +55,51 @@ p_x_y_expanded = np.tile(np.expand_dims(p_x_y, axis=0), (Nz, 1, 1))  # p(x,y) ex
 px_z = np.tile(np.expand_dims(1 / p_z, axis=1), (1, 4)) * np.sum(pz_y_expanded * p_x_y_expanded, 1)
 px_z_expanded = np.tile(np.expand_dims(px_z, axis=1), (1, Ny, 1))
 px_y_expanded = np.tile(np.expand_dims(px_y, axis=0), (Nz, 1, 1))
-IIB = iterative_ib(p_x_y=p_x_y_expanded, px_y=px_y_expanded, p_y=p_y, px_z=px_z_expanded, p_z=p_z, pz_y=pz_y,
-                   beta=50, Nx=Nx, Ny=Ny, Nz=Nz, convg=convergence_param, p_x=p_x)
+count = 0
+target_rate = 2
+max_iter_bs = 200
+accuracy_bs = 1e-31
+iter_bs = 0
+residual_bs = 1
+beta_min = 1
+beta_max = 50
+while residual_bs > accuracy_bs:
+    beta_interval = np.array([beta_min, beta_max])
+    beta = np.mean(beta_interval)
+    while True:
+        KL = np.sum((np.log(px_y_expanded + 1e-31) - np.log(px_z_expanded + 1e-31)) * px_y_expanded, 2)  # KL divergence
+        exponential_term = np.exp(-(beta * KL))
+        numerator = np.tile(np.expand_dims(p_z, axis=1), (1, Ny)) * exponential_term
+        denominator = np.sum(numerator, 0)
+        pz_y1 = numerator / denominator  # updated p(z|y)
+        p_z1 = np.sum(p_y * pz_y1, 1)  # updated p(z)
+        g = np.tile(np.expand_dims(pz_y1, axis=2), (1, 1, Nx)) * p_x_y_expanded
+        g1 = np.sum(g, 1) / np.tile(np.expand_dims(p_z1 + 1e-31, axis=1), (1, 4))
+        px_z1 = g1  # updated p(x|z)
+        px_z_new_3D = np.tile(np.expand_dims(px_z1, axis=1), (1, Ny, 1))
+        pi = [0.5, 0.5]
+        p = pi[0] * pz_y1 + pi[1] * pz_y
+        KL1 = np.sum((np.log(pz_y1 + 1e-31) - np.log(p + 1e-31)) * pz_y1)
+        KL2 = np.sum((np.log(pz_y + 1e-31) - np.log(p + 1e-31)) * pz_y)
+        JS = pi[0] * KL1 + pi[1] * KL2  # JS Divergence
+        if JS <= convergence_param:
+            p_x_z = px_z1 * np.tile(np.expand_dims(p_z1, axis=1), (1, Nx))
+            w = np.tile(np.expand_dims(p_x, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z1, axis=1), (1, Nx))
+            w1 = np.log(p_x_z + 1e-31) - np.log(w + 1e-31)
+            I_x_z = np.sum(p_x_z * w1)  # I(X;Z)
+            p_y_z = pz_y1 * np.tile(np.expand_dims(p_y, axis=0), (Nz, 1))
+            w2 = np.tile(np.expand_dims(p_y, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z1, axis=1), (1, Ny))
+            w3 = np.log(p_y_z + 1e-31) - np.log(w2 + 1e-31)
+            I_y_z = np.sum(p_y_z * w3)  # I(Y;Z)
+            break
+        else:
+            p_z = p_z1
+            pz_y = pz_y1
+            px_z_expanded = px_z_new_3D
+        count = count + 1
+    if I_y_z < target_rate:
+        beta_min = beta
+    else:
+        beta_max = beta
+    residual_bs = np.abs(beta_max - beta_min)
+    count = count + 1

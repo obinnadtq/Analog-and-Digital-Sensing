@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-Ixz = []
-Iyz = []
 
 
 def iterative_ib(p_x_y, px_y, p_y, px_z, pz_y, p_z, beta, Nx, Ny, Nz, convg, p_x):
@@ -30,8 +28,6 @@ def iterative_ib(p_x_y, px_y, p_y, px_z, pz_y, p_z, beta, Nx, Ny, Nz, convg, p_x
             w2 = np.tile(np.expand_dims(p_y, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z1, axis=1), (1, Ny))
             w3 = np.log2(p_y_z + 1e-31) - np.log2(w2 + 1e-31)
             I_y_z = np.sum(p_y_z * w3)  # I(Y;Z)
-            Ixz.append(I_x_z)
-            Iyz.append(I_y_z)
             break
         else:
             p_z = p_z1
