@@ -2,7 +2,7 @@ import numpy as np
 from IB_function import iterative_ib
 import matplotlib.pyplot as plt
 
-SNR_db = 3  # SNR in db
+SNR_db = 6  # SNR in db
 Nx = 4  # cardinality of source signal
 Ny = 64  # cardinality of quantizer input
 Nz = 32  # cardinality of quantizer output
@@ -57,17 +57,18 @@ px_z_expanded = np.tile(np.expand_dims(px_z, axis=1), (1, Ny, 1))
 px_y_expanded = np.tile(np.expand_dims(px_y, axis=0), (Nz, 1, 1))
 count = 0
 target_rate = 2
-max_iter_bs = 200
 accuracy_bs = 1e-31
 iter_bs = 0
 residual_bs = 1
 beta_min = 1
 beta_max = 50
+beta_values = []
+Iyz = []
 while residual_bs > accuracy_bs:
     beta_interval = np.array([beta_min, beta_max])
     beta = np.mean(beta_interval)
     while True:
-        KL = np.sum((np.log(px_y_expanded + 1e-31) - np.log(px_z_expanded + 1e-31)) * px_y_expanded, 2)  # KL divergence
+        KL = np.sum((np.log2(px_y_expanded + 1e-31) - np.log2(px_z_expanded + 1e-31)) * px_y_expanded, 2)  # KL divergence
         exponential_term = np.exp(-(beta * KL))
         numerator = np.tile(np.expand_dims(p_z, axis=1), (1, Ny)) * exponential_term
         denominator = np.sum(numerator, 0)
@@ -79,27 +80,43 @@ while residual_bs > accuracy_bs:
         px_z_new_3D = np.tile(np.expand_dims(px_z1, axis=1), (1, Ny, 1))
         pi = [0.5, 0.5]
         p = pi[0] * pz_y1 + pi[1] * pz_y
-        KL1 = np.sum((np.log(pz_y1 + 1e-31) - np.log(p + 1e-31)) * pz_y1)
-        KL2 = np.sum((np.log(pz_y + 1e-31) - np.log(p + 1e-31)) * pz_y)
+        KL1 = np.sum((np.log2(pz_y1 + 1e-31) - np.log2(p + 1e-31)) * pz_y1)
+        KL2 = np.sum((np.log2(pz_y + 1e-31) - np.log2(p + 1e-31)) * pz_y)
         JS = pi[0] * KL1 + pi[1] * KL2  # JS Divergence
         if JS <= convergence_param:
             p_x_z = px_z1 * np.tile(np.expand_dims(p_z1, axis=1), (1, Nx))
             w = np.tile(np.expand_dims(p_x, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z1, axis=1), (1, Nx))
-            w1 = np.log(p_x_z + 1e-31) - np.log(w + 1e-31)
+            w1 = np.log2(p_x_z + 1e-31) - np.log2(w + 1e-31)
             I_x_z = np.sum(p_x_z * w1)  # I(X;Z)
             p_y_z = pz_y1 * np.tile(np.expand_dims(p_y, axis=0), (Nz, 1))
             w2 = np.tile(np.expand_dims(p_y, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z1, axis=1), (1, Ny))
-            w3 = np.log(p_y_z + 1e-31) - np.log(w2 + 1e-31)
+            w3 = np.log2(p_y_z + 1e-31) - np.log2(w2 + 1e-31)
             I_y_z = np.sum(p_y_z * w3)  # I(Y;Z)
             break
         else:
             p_z = p_z1
             pz_y = pz_y1
             px_z_expanded = px_z_new_3D
-        count = count + 1
     if I_y_z < target_rate:
         beta_min = beta
     else:
         beta_max = beta
     residual_bs = np.abs(beta_max - beta_min)
+    beta_values.append(beta)
+    Iyz.append(I_y_z)
     count = count + 1
+    if count > 200:
+        break
+plt.plot(range(count), beta_values, linewidth=2)
+plt.grid()
+plt.title('Lagrangian multiplier versus number of iterations')
+plt.xlabel('number of iterations for bs')
+plt.ylabel('lagrangian multiplier')
+plt.show()
+
+plt.plot(range(count), Iyz, linewidth=2)
+plt.grid()
+plt.title('Compression rate versus number of iterations')
+plt.xlabel('number of iterations for bs')
+plt.ylabel('I(Y;Z)')
+plt.show()
