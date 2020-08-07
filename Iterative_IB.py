@@ -1,5 +1,4 @@
 import numpy as np
-from IB_function import iterative_ib
 import matplotlib.pyplot as plt
 
 SNR_db = 6  # SNR in db
