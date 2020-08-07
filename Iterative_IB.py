@@ -3,10 +3,10 @@ from IB_function import iterative_ib
 import matplotlib.pyplot as plt
 
 SNR_db = 6  # SNR in db
-Nx = 4  # cardinality of source signal
+Nx = 8  # cardinality of source signal
 Ny = 64  # cardinality of quantizer input
-Nz = 32  # cardinality of quantizer output
-alphabet = np.array([-3, -1, 1, 3])
+Nz = 16  # cardinality of quantizer output
+alphabet = np.arange(-7, 9, 2)
 p_x = 1 / Nx * np.ones(Nx)  # p(x)
 # AWGN Channel
 SNR_lin = 10 ** (SNR_db / 10)  # SNR in linear scale
@@ -52,7 +52,7 @@ if temp[-1] < Ny:
 p_z = np.sum(np.tile(p_y, (Nz, 1)) * pz_y, 1)
 pz_y_expanded = np.tile(np.expand_dims(pz_y, axis=2), (1, 1, Nx))  # p(z|y) expanded dimension
 p_x_y_expanded = np.tile(np.expand_dims(p_x_y, axis=0), (Nz, 1, 1))  # p(x,y) expanded dimension
-px_z = np.tile(np.expand_dims(1 / p_z, axis=1), (1, 4)) * np.sum(pz_y_expanded * p_x_y_expanded, 1)
+px_z = np.tile(np.expand_dims(1 / p_z, axis=1), (1, Nx)) * np.sum(pz_y_expanded * p_x_y_expanded, 1)
 px_z_expanded = np.tile(np.expand_dims(px_z, axis=1), (1, Ny, 1))
 px_y_expanded = np.tile(np.expand_dims(px_y, axis=0), (Nz, 1, 1))
 count = 0
@@ -75,7 +75,7 @@ while residual_bs > accuracy_bs:
         pz_y1 = numerator / denominator  # updated p(z|y)
         p_z1 = np.sum(p_y * pz_y1, 1)  # updated p(z)
         g = np.tile(np.expand_dims(pz_y1, axis=2), (1, 1, Nx)) * p_x_y_expanded
-        g1 = np.sum(g, 1) / np.tile(np.expand_dims(p_z1 + 1e-31, axis=1), (1, 4))
+        g1 = np.sum(g, 1) / np.tile(np.expand_dims(p_z1 + 1e-31, axis=1), (1, Nx))
         px_z1 = g1  # updated p(x|z)
         px_z_new_3D = np.tile(np.expand_dims(px_z1, axis=1), (1, Ny, 1))
         pi = [0.5, 0.5]

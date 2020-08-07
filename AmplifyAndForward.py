@@ -1,7 +1,6 @@
 # Import the necessary modules
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import multivariate_normal
 
 # SNR in dB
 SNR_db_channel = [6, 12, 20]
@@ -11,7 +10,7 @@ for index in range(len(SNR_db_channel)):
     SNR_linear_channel = 10 ** (SNR_db_channel[index] / 10)
 
     # cardinality of AWGN channel input signal
-    Nx = 64
+    Nx = 8
 
     # cardinality of AWGN channel output signal
     Ny = 1024
@@ -20,7 +19,7 @@ for index in range(len(SNR_db_channel)):
     Nz = 1024
 
     # input alphabet 64-ASK
-    alphabet = np.arange(-63, 65, 2)
+    alphabet = np.arange(-7, 9, 2)
 
 
     # p(x) uniform distribution
@@ -168,7 +167,7 @@ for index in range(len(SNR_db_channel)):
 
         IXZ.append(I_x_z)
         cap.append(C)
-    plt.plot(SNR_db_sensor, IXZ, linewidth=2, label=str(SNR_db_channel[index]) + ' dB - 64-ASK')
+    plt.plot(SNR_db_sensor, IXZ, linewidth=2, label=str(SNR_db_channel[index]) + ' dB - 8-ASK')
     plt.plot(SNR_db_sensor, cap, '-o', linewidth=2, label=str(SNR_db_channel[index]) + ' dB - Gaussian')
     plt.title('Relevant Information versus SNR for Amplify and Forward Sensing')
     plt.grid()
