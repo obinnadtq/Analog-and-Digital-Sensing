@@ -46,6 +46,7 @@ if temp[-1] < Ny:
     pz_y[k, temp[-1] + 1:] = 1
 I_x_y = np.sum(
     p_x_y * (np.log2(p_x_y) - np.tile(np.expand_dims(np.log2(np.tile(p_x, Ny // Nx) * p_y), axis=1), (1, Nx))))
+H_y = -np.sum(p_y * np.log2(p_y))
 pe = 0.01
 convg_param = 10 ** -4
 pzbar_z = np.ones((Nz_bar, Nz))
@@ -58,6 +59,7 @@ for idx1 in range(len(pzbar_z)):
 C = np.ones((Nz_bar, Ny))
 count = 0
 IXZ = []
+IYZ = []
 while True:
     temp_z = np.argmin(np.sum(
         np.tile(np.expand_dims(C, axis=1), (1, Nz, 1)) * np.tile(np.expand_dims(pzbar_z, axis=2), (1, 1, Ny)),
@@ -94,7 +96,12 @@ while True:
         w = np.tile(np.expand_dims(p_x, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z, axis=1), (1, Nx))
         w1 = np.log2(p_x_z + 1e-31) - np.log2(w + 1e-31)
         I_x_z = np.sum(p_x_z * w1)  # I(X;Z)
+        p_y_z = pz_y1 * np.tile(np.expand_dims(p_y, axis=0), (Nz, 1))
+        w2 = np.tile(np.expand_dims(p_y, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z, axis=1), (1, Ny))
+        w3 = np.log2(p_y_z + 1e-31) - np.log2(w2 + 1e-31)
+        I_y_z = np.sum(p_y_z * w3)
         IXZ.append(I_x_z)
+        IYZ.append(I_y_z)
         pz_y = pz_y1
     count = count + 1
 plt.plot(range(count), IXZ, linewidth=2)
