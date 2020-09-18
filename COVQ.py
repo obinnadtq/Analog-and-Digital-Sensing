@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-SNR_db = 25
+SNR_db = 12
 Nx = 4
 Ny = 64
 Nz = 16
@@ -36,12 +36,8 @@ p_x_y_expanded = np.tile(np.expand_dims(p_x_y, axis=0), (Nz, 1, 1))
 p_y = np.sum(p_x_y, 1)  # p(y)
 px_y = py_x * np.tile(np.expand_dims(np.tile(p_x, Ny // Nx) / p_y, axis=1), (1, Nx))  # Bayes rule
 px_y_expanded = np.tile(np.expand_dims(px_y, axis=0), (Nz, 1, 1))
-I_x_y = np.sum(
-    p_x_y * (np.log2(p_x_y + 1e-31) - np.tile(
-        np.expand_dims(np.log2(np.tile(p_x + 1e-31, Ny // Nx) * p_y), axis=1),
-        (1, Nx))))
 pzbar_z = np.ones((Nz_bar, Nz))
-pe = 0.0003
+pe = 0.00001
 for idx1 in range(len(pzbar_z)):
     for idx2 in range(len(pzbar_z)):
         if idx1 == idx2:
@@ -65,7 +61,6 @@ while True:
                 pz_y[idx3, idx4] = 1
             else:
                 pz_y[idx3, idx4] = 0
-
     pzbar_y = np.sum(
         np.tile(np.expand_dims(pzbar_z, axis=2), (1, 1, Ny)) * np.tile(np.expand_dims(pz_y, axis=0),
                                                                        (Nz_bar, 1, 1)), axis=1)
@@ -90,7 +85,7 @@ while True:
         Ixz.append(I_x_zbar)
         Co = Cm
         count = count + 1
-with open('COVQ.txt', 'w') as f:
+with open('COVQ_12.txt', 'w') as f:
     for item in Ixz:
         f.write("{}\n".format(item))
 

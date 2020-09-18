@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-SNR_db = 25  # SNR in db
+SNR_db = 12  # SNR in db
 Nx = 4  # cardinality of source signal
 Ny = 64  # cardinality of quantizer input
 Nz = 16  # cardinality of quantizer output
@@ -50,10 +50,10 @@ while True:
     p_z = np.sum(np.tile(p_y, (Nz, 1)) * pz_y, 1)
     pz_y_expanded = np.tile(np.expand_dims(pz_y, axis=2), (1, 1, Nx))  # p(z|y) expanded dimension
     p_x_y_expanded = np.tile(np.expand_dims(p_x_y, axis=0), (Nz, 1, 1))  # p(x,y) expanded dimension
-    px_z = np.tile(np.expand_dims(1 / p_z, axis=1), (1, Nx)) * np.sum(pz_y_expanded * p_x_y_expanded, 1)
+    px_z = np.tile(np.expand_dims(1 / (p_z + 1e-31), axis=1), (1, Nx)) * np.sum(pz_y_expanded * p_x_y_expanded, 1)
     px_z_expanded = np.tile(np.expand_dims(px_z, axis=1), (1, Ny, 1))
     px_y_expanded = np.tile(np.expand_dims(px_y, axis=0), (Nz, 1, 1))
-    KL = np.sum((np.log2(px_y_expanded) - np.log2(px_z_expanded)) * px_y_expanded, 2)  # KL divergence
+    KL = np.sum((np.log2(px_y_expanded + 1e-31) - np.log2(px_z_expanded + 1e-31)) * px_y_expanded, 2)  # KL divergence
     exponential_term = np.exp(-(beta * KL))
     numerator = np.tile(np.expand_dims(p_z, axis=1), (1, Ny)) * exponential_term
     denominator = np.sum(numerator, 0)
@@ -67,14 +67,15 @@ while True:
     if JS <= convergence_param and count == 20:
         break
     else:
-        px_z = np.tile(np.expand_dims(1 / p_z, axis=1), (1, Nx)) * np.sum(pz_y_expanded * p_x_y_expanded, 1)
+        px_z = np.tile(np.expand_dims(1 / (p_z + 1e-31), axis=1), (1, Nx)) * np.sum(pz_y_expanded * p_x_y_expanded, 1)
         p_x_z = px_z * np.tile(np.expand_dims(p_z, axis=1), (1, Nx))
         w = np.tile(np.expand_dims(p_x, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_z, axis=1), (1, Nx))
-        w1 = np.log2(p_x_z) - np.log2(w)
+        w1 = np.log2(p_x_z + 1e-31) - np.log2(w + 1e-31)
         I_x_z = np.sum(p_x_z * w1)
         Ixz.append(I_x_z)
         pz_y = pz_y1
         count = count + 1
-with open('IB.txt', 'w') as f:
+with open('IB_12.txt', 'w') as f:
     for item in Ixz:
         f.write("{}\n".format(item))
+
