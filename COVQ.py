@@ -1,18 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-SNR_db = np.arange(-10, 21, 1)
+SNR_db = 8
 Nx = 4
 Ny = 64
-Nz_bar = 16
-Nz = 16
-alphabet = np.arange(-(Nx-1), (Nx+1), 2)
-p_x = 1 / Nx * np.ones(Nx)
+Nz = [8, 16, 32]
 MI = []
-Ixz = []
-Ixy = []
-for idx7 in range(len(SNR_db)):
-    SNR_lin = 10 ** (SNR_db[idx7] / 10)
+for idx9 in range(len(Nz)):
+    Nz_bar = Nz[idx9]
+    alphabet = np.arange(-(Nx - 1), (Nx + 1), 2)
+    p_x = 1 / Nx * np.ones(Nx)
+    SNR_lin = 10 ** (SNR_db / 10)
     var_X = np.dot(alphabet ** 2, p_x)
     var_N = var_X / SNR_lin
     sigma_N_2 = np.sqrt(var_N / 2)
@@ -29,27 +27,24 @@ for idx7 in range(len(SNR_db)):
     for i in range(0, Nx):
         v = (1 / np.sqrt(2 * np.pi * var_N)) * np.exp(-(y - alphabet[i]) ** 2 / (2 * var_N))
         tmp = np.append(tmp, v, axis=1)
-
     py = tmp[:, -Nx:]
     py_x = py_x * py
     norm_sum = np.sum(py_x, 0)  # normalization for the pdf
     py_x = py_x / np.tile(norm_sum, (Ny, 1))  # p(y|x)
     p_x_y = py_x * p_x  # p(x,y) joint probability of x and y
-    p_x_y_expanded = np.tile(np.expand_dims(p_x_y, axis=0), (Nz, 1, 1))
+    p_x_y_expanded = np.tile(np.expand_dims(p_x_y, axis=0), (Nz[idx9], 1, 1))
     p_y = np.sum(p_x_y, 1)  # p(y)
     px_y = py_x * np.tile(np.expand_dims(np.tile(p_x, Ny // Nx) / p_y, axis=1), (1, Nx))  # Bayes rule
-    px_y_expanded = np.tile(np.expand_dims(px_y, axis=0), (Nz, 1, 1))
-    pzbar_z = np.ones((Nz_bar, Nz))
-    pe = 0
+    px_y_expanded = np.tile(np.expand_dims(px_y, axis=0), (Nz[idx9], 1, 1))
+    pzbar_z = np.ones((Nz_bar, Nz[idx9]))
+    pe = 0.4
     for idx1 in range(len(pzbar_z)):
         for idx2 in range(len(pzbar_z)):
             if idx1 == idx2:
-                pzbar_z[idx1, idx2] = 1 - (Nz - 1) * pe
+                pzbar_z[idx1, idx2] = 1 - pe
             else:
-                pzbar_z[idx1, idx2] = pe
-
+                pzbar_z[idx1, idx2] = pe / (Nz[idx9] - 1)
     best = []
-    Ixy = []
     for index in range(0, 100):
         C = np.random.random((Nz_bar, Ny))
         Co = 1000
@@ -62,7 +57,7 @@ for idx7 in range(len(SNR_db)):
             ptr = np.argmin(np.sum(
                 np.tile(np.expand_dims(C, axis=1), (1, Nz_bar, 1)) * np.tile(np.expand_dims(pzbar_z, axis=2), (1, 1, Ny)),
                 0), axis=0)
-            pz_y = np.zeros((Nz, Ny))
+            pz_y = np.zeros((Nz[idx9], Ny))
             pz_y[ptr, np.arange(ptr.size, dtype=int)] = 1
             pzbar_y = np.sum(
                 np.tile(np.expand_dims(pzbar_z, axis=2), (1, 1, Ny)) * np.tile(np.expand_dims(pz_y, axis=0),
@@ -83,13 +78,13 @@ for idx7 in range(len(SNR_db)):
                 Co = Cm
                 count = count + 1
         p_x_zbar = px_zbar * np.tile(np.expand_dims(p_zbar, axis=1), (1, Nx))
-        w = np.tile(np.expand_dims(p_x, axis=0), (Nz, 1)) * np.tile(np.expand_dims(p_zbar, axis=1),
+        w = np.tile(np.expand_dims(p_x, axis=0), (Nz[idx9], 1)) * np.tile(np.expand_dims(p_zbar, axis=1),
                                                                     (1, Nx))
         w1 = np.log2(p_x_zbar + 1e-31) - np.log2(w + 1e-31)
         I_x_zbar = np.sum(p_x_zbar * w1)
         best.append(I_x_zbar)
     Ixzbar = np.max(best)
     MI.append(Ixzbar)
-    Ixy.append(I_x_y)
-plt.plot(SNR_db, MI)
-plt.show()
+with open('CA_pe04.txt', 'w') as f:
+    for item in MI:
+        f.write("{}\n".format(item))
